@@ -1,26 +1,358 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #000;
+  --foreground: #ffffff;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --color-ash: #9a9a9a;
+  --color-ash-dark: #141414;
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+}
+
+@property --machine-spin {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: 0deg;
+}
+
+.machine-card {
+  animation: machine-float 4.8s ease-in-out infinite;
+}
+
+.machine-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  border-radius: inherit;
+  padding: 1px;
+  pointer-events: none;
+  background: conic-gradient(from var(--machine-spin), transparent 62%, rgba(255, 255, 255, 0.85) 78%, transparent 90%);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  mask-composite: exclude;
+  animation: machine-spin 3.2s linear infinite;
+}
+
+.machine-dots {
+  animation: machine-dots 7s linear infinite;
+}
+
+.machine-rate {
+  background: rgba(154, 154, 154, 0.22);
+  color: #9a9a9a;
+  animation: machine-rate 2.4s steps(1, end) infinite;
+}
+
+.machine-ping {
+  animation: machine-ping 1.1s ease-in-out infinite;
+}
+
+.machine-bar {
+  transform-origin: bottom;
+  animation: machine-bar 2.6s cubic-bezier(0.2, 0.8, 0.2, 1) infinite;
+}
+
+.machine-live {
+  animation: machine-live 2.6s ease-in-out infinite;
+}
+
+.machine-drift {
+  animation: machine-drift 5.5s ease-in-out infinite;
+}
+
+.machine-orbs {
+  animation: machine-sway 4.2s ease-in-out infinite;
+}
+
+.machine-orb {
+  background: #9a9a9a;
+  color: #111;
+  border: 1px solid #9a9a9a;
+  animation: machine-orb 2.7s steps(1, end) infinite;
+}
+
+@keyframes machine-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+@keyframes machine-spin {
+  to {
+    --machine-spin: 360deg;
+  }
+}
+
+@keyframes machine-dots {
+  to {
+    background-position: 14px 28px;
+  }
+}
+
+@keyframes machine-rate {
+  0%,
+  14% {
+    background: #fff;
+    color: #000;
+    transform: translateY(-8px) scale(1.12);
+    box-shadow: 0 0 22px rgba(255, 255, 255, 0.35);
+  }
+  30%,
+  100% {
+    background: rgba(154, 154, 154, 0.22);
+    color: #9a9a9a;
+    transform: none;
+    box-shadow: none;
+  }
+}
+
+@keyframes machine-ping {
+  0%,
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.55);
+  }
+  50% {
+    transform: scale(1.45);
+    box-shadow: 0 0 0 7px rgba(255, 255, 255, 0);
+  }
+}
+
+@keyframes machine-bar {
+  0%,
+  8% {
+    transform: scaleY(0.18);
+  }
+  28% {
+    transform: scaleY(1.06);
+  }
+  40%,
+  72% {
+    transform: scaleY(1);
+  }
+  100% {
+    transform: scaleY(0.18);
+  }
+}
+
+@keyframes machine-live {
+  0%,
+  32% {
+    opacity: 0;
+    transform: translateY(10px) scale(0.6);
+  }
+  46%,
+  70% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.85);
+  }
+}
+
+@keyframes machine-drift {
+  0%,
+  100% {
+    transform: translate(0, 0) rotate(0deg);
+  }
+  50% {
+    transform: translate(10px, -14px) rotate(12deg);
+  }
+}
+
+@keyframes machine-sway {
+  0%,
+  100% {
+    transform: translate(-50%, -50%) rotate(-8deg);
+  }
+  50% {
+    transform: translate(-50%, -50%) rotate(8deg);
+  }
+}
+
+@keyframes machine-orb {
+  0%,
+  16% {
+    background: #fff;
+    color: #000;
+    border-color: #fff;
+    transform: scale(1.16);
+    z-index: 2;
+    box-shadow: 0 0 26px rgba(255, 255, 255, 0.35);
+  }
+  34%,
+  100% {
+    background: #9a9a9a;
+    color: #111;
+    border-color: #9a9a9a;
+    transform: scale(1);
+    z-index: 1;
+    box-shadow: none;
+  }
+}
+
+.sketch-float {
+  animation: machine-float 5.2s ease-in-out infinite;
+}
+
+.sketch-comet {
+  stroke-dasharray: 12 88;
+  animation: sketch-comet 2.6s linear infinite;
+}
+
+.sketch-pop {
+  animation: sketch-pop 3.2s ease-in-out infinite;
+}
+
+.sketch-tag {
+  animation: sketch-tag 2.4s ease-in-out infinite;
+}
+
+.sketch-sweep {
+  animation: sketch-sweep 2.2s ease-in-out infinite;
+}
+
+.sketch-log {
+  animation: sketch-log 3.6s ease-in-out infinite;
+}
+
+.sketch-line {
+  stroke-dasharray: 100;
+  stroke-dashoffset: 100;
+  animation: sketch-line 3.4s ease-in-out infinite;
+}
+
+.sketch-ring {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  border-radius: inherit;
+  padding: 1px;
+  pointer-events: none;
+  background: conic-gradient(from var(--machine-spin), transparent 60%, rgba(255, 255, 255, 0.9) 78%, transparent 92%);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  mask-composite: exclude;
+  animation: machine-spin 3.2s linear infinite;
+}
+
+@keyframes sketch-comet {
+  to {
+    stroke-dashoffset: -100;
+  }
+}
+
+@keyframes sketch-tag {
+  0%,
+  100% {
+    background: transparent;
+    color: rgba(255, 255, 255, 0.75);
+  }
+  46%,
+  62% {
+    background: #fff;
+    color: #000;
+  }
+}
+
+@keyframes sketch-pop {
+  0%,
+  100% {
+    transform: translateY(0) scale(1);
+  }
+  35% {
+    transform: translateY(-8px) scale(1.08);
+  }
+  55% {
+    transform: translateY(2px) scale(0.98);
+  }
+}
+
+@keyframes sketch-sweep {
+  0% {
+    transform: translateX(-140%);
+  }
+  100% {
+    transform: translateX(340%);
+  }
+}
+
+@keyframes sketch-log {
+  0%,
+  8%,
+  42%,
+  100% {
+    background: transparent;
+    color: rgba(255, 255, 255, 0.55);
+  }
+  16%,
+  30% {
+    background: rgba(255, 255, 255, 0.12);
+    color: #fff;
+  }
+}
+
+@keyframes sketch-line {
+  0% {
+    stroke-dashoffset: 100;
+  }
+  42%,
+  68% {
+    stroke-dashoffset: 0;
+  }
+  100% {
+    stroke-dashoffset: -100;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .machine-card,
+  .machine-card::before,
+  .machine-dots,
+  .machine-rate,
+  .machine-ping,
+  .machine-bar,
+  .machine-live,
+  .machine-drift,
+  .machine-orbs,
+  .machine-orb,
+  .sketch-float,
+  .sketch-comet,
+  .sketch-pop,
+  .sketch-tag,
+  .sketch-sweep,
+  .sketch-log,
+  .sketch-line,
+  .sketch-ring {
+    animation: none;
+  }
+
+  .machine-rate:nth-child(2),
+  .machine-orb:nth-child(2) {
+    background: #fff;
+    color: #000;
+    border-color: #fff;
+  }
+
+  .sketch-line {
+    stroke-dashoffset: 0;
+  }
 }
