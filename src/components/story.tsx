@@ -161,6 +161,12 @@ function Dots() {
   );
 }
 
+const archPaths = {
+  toRelay: "M 200 292 C 230 270, 255 230, 278 200",
+  toHost: "M 430 190 C 446 168, 452 148, 462 132",
+  toUrl: "M 692 108 C 730 88, 770 68, 792 56",
+};
+
 function CanvasMock() {
   return (
     <div id="marketplace" className="relative mt-8 scroll-mt-24 overflow-hidden rounded-2xl border border-white/15 bg-ash-dark">
@@ -172,31 +178,93 @@ function CanvasMock() {
           <span>Settings</span>
         </span>
       </div>
-      <div className="relative h-[300px]">
+      <div className="relative h-[440px] sm:h-[460px]">
         <Dots />
-        <svg className="absolute inset-0 h-full w-full" viewBox="0 0 640 300" fill="none" aria-hidden="true">
-          <path d="M120 230 C 200 210, 250 150, 320 148" stroke="rgba(255,255,255,0.28)" strokeWidth="1.4" />
-          <path d="M120 230 C 200 210, 250 150, 320 148" stroke="white" strokeWidth="2.2" strokeLinecap="round" pathLength="100" className="sketch-comet" />
-          <path d="M500 90 C 450 110, 400 130, 360 146" stroke="rgba(255,255,255,0.2)" strokeWidth="1.4" />
-          <path d="M500 90 C 450 110, 400 130, 360 146" stroke="white" strokeWidth="2.2" strokeLinecap="round" pathLength="100" className="sketch-comet" style={{ animationDelay: "-1.2s" }} />
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_40%,#141414_100%)]" />
+        <svg className="absolute inset-0 h-full w-full" viewBox="0 0 1000 420" preserveAspectRatio="none" fill="none" aria-hidden="true">
+          <ArchWire d={archPaths.toRelay} delay="0s" />
+          <ArchWire d={archPaths.toHost} delay="-0.8s" />
+          <ArchWire d={archPaths.toUrl} delay="-1.6s" />
+          <ArchPacket d={archPaths.toRelay} dur="2.4s" />
+          <ArchPacket d={archPaths.toHost} dur="2.4s" begin="0.7s" />
+          <ArchPacket d={archPaths.toUrl} dur="2.4s" begin="1.4s" />
         </svg>
-        <div className="absolute left-1/2 top-[42%] -translate-x-1/2 -translate-y-1/2">
-          <div className="sketch-float w-48 rounded-xl border border-white/20 bg-black p-3">
-          <div className="flex items-center gap-2 text-sm">
-            <span className="machine-ping h-2 w-2 rounded-full bg-white" />
-            gpu-01 <span className="text-white/35">[Host]</span>
-          </div>
-          <p className="mt-2 text-[11px] text-ash">RTX 4090 · Lisbon · $0.42/hr</p>
+
+        <div className="absolute left-[4%] top-[62%] z-10">
+          <div className="sketch-pop rounded-xl border border-white/20 bg-black px-3 py-2.5">
+            <p className="text-[12px] text-white/85">api · building</p>
+            <p className="mt-1 text-[10px] text-ash">cynera/hello · 1 hour max</p>
           </div>
         </div>
-        <div className="sketch-pop absolute bottom-8 left-8 rounded-lg border border-white/20 bg-black px-3 py-2 text-[12px] text-white/80">
-          api · building
+
+        <div className="absolute left-[28%] top-[40%] z-10 hidden sm:block">
+          <div className="sketch-float rounded-xl border border-white/15 bg-black px-3 py-2.5" style={{ animationDelay: "-0.8s" }}>
+            <p className="flex items-center gap-2 text-[12px] text-white/85">
+              <span className="machine-ping h-1.5 w-1.5 rounded-full bg-white" />
+              relay
+            </p>
+            <p className="mt-1 text-[10px] text-ash">outbound tunnel</p>
+          </div>
         </div>
-        <div className="sketch-float absolute right-8 top-8 rounded-lg border border-white/15 bg-black px-3 py-2 text-[12px] text-ash" style={{ animationDelay: "-1.6s" }}>
-          Lisbon
+
+        <div className="absolute left-[46%] top-[16%] z-10">
+          <div className="machine-card relative w-[180px] rounded-xl border border-white/20 bg-black p-3 sm:w-[220px]">
+            <div className="flex items-center gap-2 text-sm">
+              <span className="machine-ping h-2 w-2 rounded-full bg-white" />
+              gpu-01 <span className="text-white/35">[Host]</span>
+            </div>
+            <p className="mt-2 text-[11px] text-ash">RTX 4090 · 24 GB · Lisbon</p>
+            <p className="mt-1 text-[12px] text-white">$0.42/hr</p>
+            <div className="mt-3 flex h-6 items-end gap-1">
+              {[40, 65, 48, 80, 58, 92, 70].map((height, index) => (
+                <span
+                  key={index}
+                  className="machine-bar flex-1 rounded-sm bg-white/80"
+                  style={{ height: `${height}%`, animationDelay: `${index * 0.12}s` }}
+                />
+              ))}
+            </div>
+            <div className="arch-cycle relative mt-2 h-4 text-[10px] text-ash">
+              <span>heartbeat</span>
+              <span>tunnel open</span>
+              <span>billing the hour</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="absolute right-[4%] top-[8%] z-10">
+          <div className="sketch-float rounded-xl border border-white/20 bg-black px-3 py-2.5" style={{ animationDelay: "-1.8s" }}>
+            <p className="flex items-center gap-2 text-[12px] text-white">
+              <span className="machine-ping h-1.5 w-1.5 rounded-full bg-white" style={{ animationDelay: "-0.4s" }} />
+              live
+            </p>
+            <p className="mt-1 text-[10px] text-ash">lisbon.hosts.cynera.app</p>
+          </div>
         </div>
       </div>
     </div>
+  );
+}
+
+function ArchWire({ d, delay }: { d: string; delay: string }) {
+  return (
+    <>
+      <path d={d} stroke="rgba(255,255,255,0.22)" strokeWidth="1.6" />
+      <path d={d} stroke="white" strokeWidth="2.4" strokeLinecap="round" pathLength="100" className="sketch-comet" style={{ animationDelay: delay }} />
+    </>
+  );
+}
+
+function ArchPacket({ d, dur, begin }: { d: string; dur: string; begin?: string }) {
+  return (
+    <>
+      <circle r="7" fill="white" opacity="0.18">
+        <animateMotion dur={dur} begin={begin || "0s"} repeatCount="indefinite" path={d} />
+      </circle>
+      <circle r="2.6" fill="white">
+        <animateMotion dur={dur} begin={begin || "0s"} repeatCount="indefinite" path={d} />
+      </circle>
+    </>
   );
 }
 

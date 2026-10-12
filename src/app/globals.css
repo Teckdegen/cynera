@@ -239,6 +239,21 @@ body {
   animation: sketch-line 3.4s ease-in-out infinite;
 }
 
+.arch-cycle > span {
+  position: absolute;
+  left: 0;
+  opacity: 0;
+  animation: arch-cycle 7.5s steps(1, end) infinite;
+}
+
+.arch-cycle > span:nth-child(2) {
+  animation-delay: -2.5s;
+}
+
+.arch-cycle > span:nth-child(3) {
+  animation-delay: -5s;
+}
+
 .sketch-ring {
   position: absolute;
   inset: 0;
@@ -310,6 +325,17 @@ body {
   }
 }
 
+@keyframes arch-cycle {
+  0%,
+  32% {
+    opacity: 1;
+  }
+  33%,
+  100% {
+    opacity: 0;
+  }
+}
+
 @keyframes sketch-line {
   0% {
     stroke-dashoffset: 100;
@@ -341,8 +367,13 @@ body {
   .sketch-sweep,
   .sketch-log,
   .sketch-line,
-  .sketch-ring {
+  .sketch-ring,
+  .arch-cycle > span {
     animation: none;
+  }
+
+  .arch-cycle > span:first-child {
+    opacity: 1;
   }
 
   .machine-rate:nth-child(2),
