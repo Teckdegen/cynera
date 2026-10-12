@@ -16,6 +16,15 @@ export function Footer() {
           </div>
         </div>
         <div className="mt-8 flex flex-wrap items-center justify-between gap-4 border-t border-white/10 pt-5 text-[13px] text-ash">
+          <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
+            <a
+              href="https://ponsfamily.com/launchpad/0xb2295826226c3d8253d728c5b98d6453961561d4"
+              className="font-medium text-white transition-colors hover:text-white"
+            >
+              Buy CYNE
+            </a>
+            <p className="break-all font-mono text-[12px]">0xb2295826226c3d8253d728c5b98d6453961561d4</p>
+          </div>
           <p>Copyright 2026 Cynera</p>
           <div className="flex items-center gap-6">
             <a href="#terms" className="transition-colors hover:text-white">
