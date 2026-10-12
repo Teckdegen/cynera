@@ -181,17 +181,7 @@ const payments = [
 ];
 
 export function WalletPage() {
-  const { wallet, connect, connecting, refresh } = useConsole();
-  const [error, setError] = useState("");
-
-  async function connectWallet() {
-    setError("");
-    try {
-      await connect();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not connect the wallet");
-    }
-  }
+  const { wallet, connecting, refresh, openWallet } = useConsole();
 
   return (
     <PageFrame
@@ -200,7 +190,7 @@ export function WalletPage() {
         wallet ? (
           <GhostButton onClick={() => void refresh()}>Refresh</GhostButton>
         ) : (
-          <PrimaryButton disabled={connecting} onClick={() => void connectWallet()}>
+          <PrimaryButton disabled={connecting} onClick={openWallet}>
             {connecting ? "Connecting" : "Connect wallet"}
           </PrimaryButton>
         )
@@ -211,7 +201,6 @@ export function WalletPage() {
         <p className="mt-2 text-[44px] font-medium leading-none tracking-[-0.05em] tabular-nums">{wallet?.balance || "$0"}</p>
         <p className="mt-3 text-[13px]">USDG</p>
       </div>
-      {error ? <p className="text-[13px]">{error}</p> : null}
       <div>
         <SectionLabel>Payments</SectionLabel>
         <Panel className="overflow-hidden">

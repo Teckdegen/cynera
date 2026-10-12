@@ -18,7 +18,9 @@ import {
   ServerIcon,
   WalletIcon,
 } from "./icons";
+import { ConnectButton } from "@rainbow-me/rainbowkit";
 import { cn } from "./ui";
+import { Web3Provider } from "./web3";
 
 const NAV = [
   { href: "/dashboard", label: "Machines", icon: GridIcon, exact: true },
@@ -31,15 +33,17 @@ const NAV = [
 
 export function Shell({ children }: { children: ReactNode }) {
   return (
-    <ConsoleProvider>
-      <ShellFrame>{children}</ShellFrame>
-    </ConsoleProvider>
+    <Web3Provider>
+      <ConsoleProvider>
+        <ShellFrame>{children}</ShellFrame>
+      </ConsoleProvider>
+    </Web3Provider>
   );
 }
 
 function ShellFrame({ children }: { children: ReactNode }) {
   const pathname = usePathname();
-  const { wallet, notice, clearNotice, connect, connecting } = useConsole();
+  const { wallet, notice, clearNotice } = useConsole();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const items = NAV.filter((item) => item.label.toLowerCase().includes(query.trim().toLowerCase()));
@@ -141,7 +145,7 @@ function ShellFrame({ children }: { children: ReactNode }) {
         {wallet ? (
           <div className="flex min-h-0 flex-1 flex-col">{children}</div>
         ) : (
-          <ConnectPanel connect={connect} connecting={connecting} />
+          <ConnectPanel />
         )}
       </div>
       {notice ? (
@@ -156,27 +160,10 @@ function ShellFrame({ children }: { children: ReactNode }) {
   );
 }
 
-function ConnectPanel({ connect, connecting }: { connect: () => Promise<void>; connecting: boolean }) {
-  const [error, setError] = useState("");
+function ConnectPanel() {
   return (
     <div className="flex min-h-0 flex-1 items-center justify-center px-6">
-      <div className="w-full max-w-md rounded-lg border border-white bg-black px-6 py-10 text-center">
-        <p className="text-[22px] font-medium tracking-[-0.04em]">Connect a wallet</p>
-        <p className="mt-3 text-[14px] leading-6">
-          Use the wallet that holds your USDG on Robinhood Chain. Cynera reads that balance.
-        </p>
-        <button
-          className="mt-6 inline-flex h-10 items-center rounded-md bg-white px-4 text-[14px] font-medium text-black disabled:cursor-not-allowed"
-          disabled={connecting}
-          onClick={() => {
-            setError("");
-            void connect().catch((err: unknown) => setError(err instanceof Error ? err.message : "Could not connect"));
-          }}
-        >
-          {connecting ? "Connecting" : "Connect wallet"}
-        </button>
-        {error ? <p className="mt-4 text-[13px]">{error}</p> : null}
-      </div>
+      <ConnectButton />
     </div>
   );
 }

@@ -2,7 +2,10 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { billFor, hostName } from "./catalog";
-import { connectAccount, readUsdg, silentAccount, watchAccounts } from "@/lib/usdg";
+import { useConnectModal } from "@rainbow-me/rainbowkit";
+import { useAccount, useSwitchChain } from "wagmi";
+import { readUsdg } from "@/lib/usdg";
+import { robinhood } from "@/lib/wagmi";
 import {
   API,
   attachWallet,
@@ -33,7 +36,7 @@ type ConsoleValue = {
   refresh: () => Promise<void>;
   connecting: boolean;
   now: number;
-  connect: () => Promise<void>;
+  openWallet: () => void;
   deploy: (machine: Machine, image?: string, hours?: number) => Promise<void>;
   stop: (id: string) => Promise<void>;
   listMachine: (machine: Machine) => void;
@@ -60,8 +63,10 @@ export function ConsoleProvider({ children }: { children: ReactNode }) {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [now, setNow] = useState(0);
   const [wallet, setWallet] = useState<Wallet | null>(null);
-  const [connecting, setConnecting] = useState(false);
   const addressRef = useRef("");
+  const { address, isConnected, isConnecting, chainId } = useAccount();
+  const { openConnectModal, connectModalOpen } = useConnectModal();
+  const { switchChain } = useSwitchChain();
   const liveIds = useRef(new Set<string>());
   const listed = useRef<Machine[]>([]);
   const [notice, setNotice] = useState("");
@@ -101,38 +106,34 @@ export function ConsoleProvider({ children }: { children: ReactNode }) {
     };
   }, [refresh]);
 
-  const applyAccount = useCallback(async (address: string) => {
-    addressRef.current = address;
+  const openWallet = useCallback(() => {
+    openConnectModal?.();
+  }, [openConnectModal]);
+
+  useEffect(() => {
     if (!address) {
+      addressRef.current = "";
       setWallet(null);
       return;
     }
-    const balance = await readUsdg(address);
-    setWallet({ id: address, address, role: "renter", label: "Wallet", balance, held: "$0" });
-  }, []);
-
-  const connect = useCallback(async () => {
-    setConnecting(true);
-    setNotice("");
-    try {
-      await applyAccount(await connectAccount());
-    } catch (err) {
-      setNotice(err instanceof Error ? err.message : "Could not connect the wallet");
-      throw err;
-    } finally {
-      setConnecting(false);
-    }
-  }, [applyAccount]);
+    addressRef.current = address;
+    let cancel = false;
+    void readUsdg(address)
+      .then((balance) => {
+        if (!cancel) setWallet({ id: address, address, role: "renter", label: "Wallet", balance, held: "$0" });
+      })
+      .catch(() => {
+        if (!cancel) setWallet({ id: address, address, role: "renter", label: "Wallet", balance: "$0", held: "$0" });
+      });
+    return () => {
+      cancel = true;
+    };
+  }, [address]);
 
   useEffect(() => {
-    const unwatch = watchAccounts((address) => {
-      void applyAccount(address).catch(() => setWallet(null));
-    });
-    void silentAccount()
-      .then((address) => (address ? applyAccount(address) : undefined))
-      .catch(() => undefined);
-    return unwatch;
-  }, [applyAccount]);
+    if (!isConnected || !chainId || chainId === robinhood.id) return;
+    void switchChain({ chainId: robinhood.id });
+  }, [isConnected, chainId, switchChain]);
 
   const ensureWallet = useCallback(async () => {
     const existing = localStorage.getItem(WALLET_KEY);
@@ -263,16 +264,16 @@ export function ConsoleProvider({ children }: { children: ReactNode }) {
       wallet,
       notice,
       busy,
-      connecting,
+      connecting: isConnecting || Boolean(connectModalOpen),
       now,
+      openWallet,
       refresh,
-      connect,
       deploy,
       stop,
       listMachine,
       clearNotice: () => setNotice(""),
     }),
-    [offline, loading, config, machines, jobs, wallet, notice, busy, connecting, now, refresh, connect, deploy, stop, listMachine],
+    [offline, loading, config, machines, jobs, wallet, notice, busy, isConnecting, connectModalOpen, now, openWallet, refresh, deploy, stop, listMachine],
   );
 
   return <ConsoleContext.Provider value={value}>{children}</ConsoleContext.Provider>;
