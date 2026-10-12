@@ -172,14 +172,6 @@ export function UsagePage() {
   );
 }
 
-const payments = [
-  { cpu: "8 vCPU", detail: "2 hours", amount: "-$0.84", when: "Today" },
-  { cpu: "16 vCPU", detail: "1 hour", amount: "-$0.68", when: "Yesterday" },
-  { cpu: "4 vCPU", detail: "6 hours", amount: "-$0.72", when: "Oct 10" },
-  { cpu: "32 vCPU", detail: "30 min", amount: "-$1.20", when: "Oct 8" },
-  { cpu: "8 vCPU", detail: "4 hours", amount: "-$1.12", when: "Oct 6" },
-];
-
 export function WalletPage() {
   const { wallet, connecting, refresh, openWallet } = useConsole();
 
@@ -203,24 +195,7 @@ export function WalletPage() {
       </div>
       <div>
         <SectionLabel>Payments</SectionLabel>
-        <Panel className="overflow-hidden">
-          <ul>
-            {payments.map((payment) => (
-              <li key={`${payment.when}-${payment.cpu}-${payment.amount}`} className="flex items-center justify-between gap-4 border-b border-white px-4 py-3.5 last:border-0">
-                <div className="min-w-0">
-                  <p className="text-[14px] font-medium">{payment.cpu}</p>
-                  <p className="mt-0.5 text-[12px]">
-                    {payment.detail} · Paid
-                  </p>
-                </div>
-                <div className="text-right">
-                  <p className="text-[14px] font-medium tabular-nums">{payment.amount}</p>
-                  <p className="mt-0.5 text-[12px]">{payment.when}</p>
-                </div>
-              </li>
-            ))}
-          </ul>
-        </Panel>
+        <Panel className="px-4 py-8 text-center text-[13px]">Payment history shows here.</Panel>
       </div>
     </PageFrame>
   );

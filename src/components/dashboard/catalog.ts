@@ -7,6 +7,9 @@ export const floorMachines: Machine[] = [
   { id: "london-l40s", cpu: 16, memoryGb: 64, gpu: "L40S", diskGb: 2000, region: "london", pricePerHour: "1.10" },
   { id: "paris-4080", cpu: 8, memoryGb: 32, gpu: "RTX 4080", diskGb: 1000, region: "paris", pricePerHour: "0.36" },
   { id: "newyork-3090", cpu: 8, memoryGb: 32, gpu: "RTX 3090", diskGb: 1000, region: "new york", pricePerHour: "0.28" },
+  { id: "tokyo-a100", cpu: 24, memoryGb: 80, gpu: "A100", diskGb: 2000, region: "tokyo", pricePerHour: "1.85" },
+  { id: "singapore-l4", cpu: 8, memoryGb: 32, gpu: "L4", diskGb: 1000, region: "singapore", pricePerHour: "0.31" },
+  { id: "sydney-4080", cpu: 12, memoryGb: 48, gpu: "RTX 4080", diskGb: 2000, region: "sydney", pricePerHour: "0.48" },
 ];
 
 export function hostName(region: string) {

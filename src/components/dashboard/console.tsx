@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { billFor, hostName } from "./catalog";
+import { billFor, floorMachines, hostName } from "./catalog";
 import { useConnectModal } from "@rainbow-me/rainbowkit";
 import { useAccount, useSwitchChain } from "wagmi";
 import { readUsdg } from "@/lib/usdg";
@@ -58,7 +58,7 @@ export function ConsoleProvider({ children }: { children: ReactNode }) {
   const [offline, setOffline] = useState(false);
   const [loading, setLoading] = useState(true);
   const [config, setConfig] = useState<Config>({ mode: "demo" });
-  const [machines, setMachines] = useState<Machine[]>([]);
+  const [machines, setMachines] = useState<Machine[]>(floorMachines);
   const session = useRef<Job[]>([]);
   const [jobs, setJobs] = useState<Job[]>([]);
   const [now, setNow] = useState(0);
@@ -74,7 +74,7 @@ export function ConsoleProvider({ children }: { children: ReactNode }) {
 
   const refresh = useCallback(async () => {
     setNow(Date.now());
-    setMachines([...listed.current]);
+    setMachines([...listed.current, ...floorMachines.filter((machine) => !listed.current.some((item) => item.id === machine.id))]);
     setJobs([...session.current]);
     try {
       setConfig(await getConfig());
