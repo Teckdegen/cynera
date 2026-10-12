@@ -418,33 +418,33 @@ body {
 
 .dash.bg-black,
 .dash .bg-black {
-  background-color: #fff !important;
+  background-color: #000 !important;
 }
 
 .dash .bg-white,
 .dash .hover\:bg-white:hover {
-  background-color: #000 !important;
+  background-color: #c0c0c0 !important;
 }
 
 .dash,
 .dash .text-white,
 .dash .hover\:text-white:hover {
-  color: #000 !important;
+  color: #c0c0c0 !important;
 }
 
 .dash .text-black,
 .dash .hover\:text-black:hover {
-  color: #fff !important;
+  color: #000 !important;
 }
 
 .dash .border-white {
-  border-color: #000 !important;
+  border-color: #c0c0c0 !important;
 }
 
 .dash .divide-white > :not([hidden]) ~ :not([hidden]) {
-  border-color: #000 !important;
+  border-color: #c0c0c0 !important;
 }
 
 .dash .placeholder\:text-white::placeholder {
-  color: #000 !important;
+  color: #c0c0c0 !important;
 }
