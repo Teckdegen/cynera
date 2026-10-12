@@ -59,7 +59,7 @@ export function DeploymentsPage() {
       </Panel>
 
       {jobs.length === 0 ? (
-        <EmptyNote title="No deployments yet" body="Pick a machine and an image. The host starts it and you pay for the time it runs." />
+        <EmptyNote title="No projects yet" body="A deployment you start shows up here. You pay for the time it runs." />
       ) : (
         <Panel className="overflow-x-auto">
           <table className="w-full min-w-[720px] text-left text-[13px]">
@@ -172,9 +172,16 @@ export function UsagePage() {
   );
 }
 
+const payments = [
+  { cpu: "8 vCPU", detail: "2 hours", amount: "-$0.84", when: "Today" },
+  { cpu: "16 vCPU", detail: "1 hour", amount: "-$0.68", when: "Yesterday" },
+  { cpu: "4 vCPU", detail: "6 hours", amount: "-$0.72", when: "Oct 10" },
+  { cpu: "32 vCPU", detail: "30 min", amount: "-$1.20", when: "Oct 8" },
+  { cpu: "8 vCPU", detail: "4 hours", amount: "-$1.12", when: "Oct 6" },
+];
+
 export function WalletPage() {
   const { wallet, connect, connecting, refresh } = useConsole();
-  const [copied, setCopied] = useState(false);
   const [error, setError] = useState("");
 
   async function connectWallet() {
@@ -184,13 +191,6 @@ export function WalletPage() {
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not connect the wallet");
     }
-  }
-
-  async function copy() {
-    if (!wallet) return;
-    await navigator.clipboard.writeText(wallet.address);
-    setCopied(true);
-    window.setTimeout(() => setCopied(false), 1200);
   }
 
   return (
@@ -206,26 +206,33 @@ export function WalletPage() {
         )
       }
     >
-      <div className="grid gap-4 lg:grid-cols-2">
-        <Panel className="p-5">
-          <p className="text-[13px] text-white">USDG</p>
-          <p className="mt-2 text-[32px] font-medium tracking-[-0.04em] tabular-nums">{wallet?.balance || "$0"}</p>
-          <p className="mt-2 text-[13px] text-white">Robinhood Chain</p>
-        </Panel>
-        <Panel className="p-5">
-          <p className="text-[13px] text-white">Connected wallet</p>
-          <p className="mt-3 break-all font-mono text-[13px] leading-6">{wallet?.address || "Not connected"}</p>
-          {wallet ? (
-            <GhostButton className="mt-4" onClick={() => void copy()}>
-              {copied ? "Copied" : "Copy address"}
-            </GhostButton>
-          ) : null}
+      <div className="px-1 pt-4">
+        <p className="text-[13px]">Available</p>
+        <p className="mt-2 text-[44px] font-medium leading-none tracking-[-0.05em] tabular-nums">{wallet?.balance || "$0"}</p>
+        <p className="mt-3 text-[13px]">USDG</p>
+      </div>
+      {error ? <p className="text-[13px]">{error}</p> : null}
+      <div>
+        <SectionLabel>Payments</SectionLabel>
+        <Panel className="overflow-hidden">
+          <ul>
+            {payments.map((payment) => (
+              <li key={`${payment.when}-${payment.cpu}-${payment.amount}`} className="flex items-center justify-between gap-4 border-b border-white px-4 py-3.5 last:border-0">
+                <div className="min-w-0">
+                  <p className="text-[14px] font-medium">{payment.cpu}</p>
+                  <p className="mt-0.5 text-[12px]">
+                    {payment.detail} · Paid
+                  </p>
+                </div>
+                <div className="text-right">
+                  <p className="text-[14px] font-medium tabular-nums">{payment.amount}</p>
+                  <p className="mt-0.5 text-[12px]">{payment.when}</p>
+                </div>
+              </li>
+            ))}
+          </ul>
         </Panel>
       </div>
-      {error ? <p className="text-[13px] text-white">{error}</p> : null}
-      <Panel className="px-5 py-4 text-[13px] leading-6 text-white">
-        This is the USDG balance in the wallet you connected. Cynera reads it from Robinhood Chain.
-      </Panel>
     </PageFrame>
   );
 }

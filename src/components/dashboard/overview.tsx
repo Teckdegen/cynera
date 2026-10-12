@@ -186,7 +186,7 @@ function MachineList({
       <Panel className="p-4">
         <div className="flex items-center gap-2.5">
           <Mark className="h-8 w-8" />
-          <p className="text-[14px] font-medium">No machines online</p>
+          <p className="text-[14px] font-medium">No CPUs yet</p>
         </div>
         <p className="mt-3 text-[13px] leading-5 text-white">List a spare machine from Host. The hardware stays with you.</p>
         <p className="mt-1 text-[13px] leading-5 text-white">Renters pay you for the hours they use.</p>

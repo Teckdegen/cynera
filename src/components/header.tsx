@@ -9,7 +9,7 @@ export function Header() {
         href="/dashboard"
         className="inline-flex h-10 items-center justify-center rounded-full bg-white px-4 text-sm font-medium tracking-[-0.035em] text-black transition-colors hover:bg-white/85"
       >
-        Dashboard
+        Get started
       </a>
     </header>
   );

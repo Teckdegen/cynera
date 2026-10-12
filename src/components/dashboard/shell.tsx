@@ -121,7 +121,7 @@ function ShellFrame({ children }: { children: ReactNode }) {
         <div className="mt-auto flex h-12 items-center gap-2 border-t border-white px-3">
           <span className="flex h-6 w-6 items-center justify-center rounded-full bg-white text-[11px] font-medium text-black">C</span>
           <Link href="/dashboard/wallet" className="min-w-0 flex-1 truncate text-[13px] text-white hover:text-white">
-            {wallet ? shortAddress(wallet.address) : "Connect"}
+            {wallet ? "Wallet" : "Connect"}
           </Link>
           <Link href="/dashboard/logs" aria-label="Logs" className="text-white hover:text-white">
             <BellIcon />
@@ -179,9 +179,4 @@ function ConnectPanel({ connect, connecting }: { connect: () => Promise<void>; c
       </div>
     </div>
   );
-}
-
-function shortAddress(address: string) {
-  if (address.length < 12) return address;
-  return `${address.slice(0, 6)}…${address.slice(-4)}`;
 }

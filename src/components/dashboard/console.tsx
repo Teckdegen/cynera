@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { billFor, floorMachines, hostName, marketJobs } from "./catalog";
+import { billFor, hostName } from "./catalog";
 import { connectAccount, readUsdg, silentAccount, watchAccounts } from "@/lib/usdg";
 import {
   API,
@@ -9,8 +9,6 @@ import {
   createJob,
   createWallet,
   getConfig,
-  getJob,
-  getMachines,
   getWallet,
   stopJob,
   type Config,
@@ -57,7 +55,7 @@ export function ConsoleProvider({ children }: { children: ReactNode }) {
   const [offline, setOffline] = useState(false);
   const [loading, setLoading] = useState(true);
   const [config, setConfig] = useState<Config>({ mode: "demo" });
-  const [machines, setMachines] = useState<Machine[]>(floorMachines);
+  const [machines, setMachines] = useState<Machine[]>([]);
   const session = useRef<Job[]>([]);
   const [jobs, setJobs] = useState<Job[]>([]);
   const [now, setNow] = useState(0);
@@ -71,47 +69,26 @@ export function ConsoleProvider({ children }: { children: ReactNode }) {
 
   const refresh = useCallback(async () => {
     setNow(Date.now());
+    setMachines([...listed.current]);
+    setJobs([...session.current]);
     try {
-      const [nextConfig, nextMachines] = await Promise.all([getConfig(), getMachines()]);
-      setConfig(nextConfig);
-      liveIds.current = new Set(nextMachines.map((machine) => machine.id));
-      const seen = new Set([...nextMachines, ...listed.current].map((machine) => machine.id));
-      setMachines([...nextMachines, ...listed.current, ...floorMachines.filter((machine) => !seen.has(machine.id))]);
+      setConfig(await getConfig());
       setOffline(false);
-      if (addressRef.current) {
-        try {
-          const balance = await readUsdg(addressRef.current);
-          setWallet((current) => (current ? { ...current, balance } : current));
-        } catch {
-          /* keep the last balance */
-        }
-      }
-      const ids = readJobs();
-      const nextJobs: Job[] = [];
-      for (const id of ids) {
-        if (session.current.some((job) => job.id === id)) continue;
-        try {
-          nextJobs.push(await getJob(id));
-        } catch {
-          /* an old id from this browser is not on the API */
-        }
-      }
-      setJobs([...session.current, ...nextJobs]);
     } catch {
-      setMachines([...listed.current, ...floorMachines.filter((machine) => !listed.current.some((item) => item.id === machine.id))]);
       setOffline(false);
-    } finally {
-      setLoading(false);
     }
+    if (addressRef.current) {
+      try {
+        const balance = await readUsdg(addressRef.current);
+        setWallet((current) => (current ? { ...current, balance } : current));
+      } catch {
+        /* keep the last balance */
+      }
+    }
+    setLoading(false);
   }, []);
 
   useEffect(() => {
-    if (session.current.length === 0) {
-      const clock = Date.now();
-      session.current = marketJobs(clock);
-      setJobs([...session.current]);
-      setNow(clock);
-    }
     const timer = window.setTimeout(() => {
       void refresh();
     }, 0);
