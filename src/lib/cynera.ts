@@ -22,9 +22,14 @@ export type Job = {
   renterWalletId?: string;
   hostWalletId?: string;
   image?: string;
+  machineId?: string;
   machineLabel?: string;
   detail?: string;
   local?: boolean;
+  pricePerHour?: string;
+  startedAt?: number;
+  ranMs?: number;
+  lines?: string[];
 };
 
 export type Wallet = {

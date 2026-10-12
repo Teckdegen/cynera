@@ -4,14 +4,16 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import { useConsole } from "./console";
 import { PlusIcon } from "./icons";
+import { billFor, usedLabel } from "./catalog";
 import { EmptyNote, Field, GhostButton, Meter, PageFrame, Panel, PrimaryButton, SectionLabel, TextInput } from "./ui";
 
 export function DeploymentsPage() {
-  const { jobs, machines, deploy, stop, busy } = useConsole();
+  const { jobs, machines, deploy, stop, busy, now } = useConsole();
   const [image, setImage] = useState("cynera/hello");
   const [hours, setHours] = useState("1");
   const [machineId, setMachineId] = useState("");
-  const selected = machines.find((machine) => machine.id === machineId) || machines[0];
+  const taken = new Set(jobs.filter((job) => !job.done && job.machineId).map((job) => job.machineId as string));
+  const selected = machines.find((machine) => machine.id === machineId) || machines.find((machine) => !taken.has(machine.id)) || machines[0];
 
   return (
     <PageFrame
@@ -40,6 +42,7 @@ export function DeploymentsPage() {
             {machines.map((machine) => (
               <option key={machine.id} value={machine.id}>
                 {machine.gpu || machine.id} · {machine.region}
+                {taken.has(machine.id) ? " · in use" : ""}
               </option>
             ))}
           </select>
@@ -48,15 +51,15 @@ export function DeploymentsPage() {
           <TextInput value={hours} onChange={(event) => setHours(event.target.value)} inputMode="decimal" />
         </Field>
         <PrimaryButton
-          disabled={!selected || busy === selected.id}
+          disabled={!selected || busy === selected.id || taken.has(selected.id)}
           onClick={() => selected && void deploy(selected, image.trim() || "cynera/hello", Number(hours) || 1)}
         >
-          {selected && busy === selected.id ? "Starting" : "Deploy"}
+          {selected && taken.has(selected.id) ? "In use" : selected && busy === selected.id ? "Starting" : "Deploy"}
         </PrimaryButton>
       </Panel>
 
       {jobs.length === 0 ? (
-        <EmptyNote title="No deployments yet" body="Pick a machine and an image. cynera/hello runs before Docker is installed." />
+        <EmptyNote title="No deployments yet" body="Pick a machine and an image. The host starts it and you pay for the time it runs." />
       ) : (
         <Panel className="overflow-x-auto">
           <table className="w-full min-w-[720px] text-left text-[13px]">
@@ -77,10 +80,17 @@ export function DeploymentsPage() {
                   <td className="px-4 py-3">{job.image || "cynera/hello"}</td>
                   <td className="px-4 py-3">{job.machineLabel || "—"}</td>
                   <td className="px-4 py-3 capitalize">{job.status}</td>
-                  <td className="px-4 py-3 tabular-nums">{job.billed || (job.done ? "—" : "running")}</td>
+                  <td className="px-4 py-3 tabular-nums">
+                    {job.billed || (job.pricePerHour && job.startedAt && now && !job.done ? billFor(job.pricePerHour, now - job.startedAt) : "—")}
+                  </td>
                   <td className="px-4 py-3 text-right">
+                    {job.url ? (
+                      <a href={job.url} className="mr-3 underline" target="_blank" rel="noreferrer">
+                        Open
+                      </a>
+                    ) : null}
                     {job.done ? (
-                      <span className="text-[12px] text-white">{job.payment?.txHash ? "Paid" : job.payment?.error || ""}</span>
+                      <span className="text-[12px] text-white">Settled</span>
                     ) : (
                       <GhostButton disabled={busy === job.id} onClick={() => void stop(job.id)}>
                         {busy === job.id ? "Stopping" : "Stop"}
@@ -101,11 +111,14 @@ export function LogsPage() {
   const { jobs } = useConsole();
   const lines = useMemo(
     () =>
-      jobs.map((job) => ({
-        id: job.id,
-        status: job.status,
-        detail: job.detail || job.error || job.url || job.billed || "waiting",
-      })),
+      jobs.flatMap((job) =>
+        (job.lines?.length ? job.lines : [job.detail || job.error || "waiting"]).map((detail, index) => ({
+          key: `${job.id}-${index}`,
+          id: job.id,
+          status: job.status,
+          detail,
+        })),
+      ),
     [jobs],
   );
 
@@ -116,7 +129,7 @@ export function LogsPage() {
       ) : (
         <Panel className="divide-y divide-white font-mono text-[12px]">
           {lines.map((line) => (
-            <div key={line.id} className="grid gap-2 px-4 py-3 sm:grid-cols-[180px_90px_1fr] sm:gap-4">
+            <div key={line.key} className="grid gap-2 px-4 py-3 sm:grid-cols-[180px_90px_1fr] sm:gap-4">
               <span className="truncate text-white">{line.id}</span>
               <span className="capitalize text-white">{line.status}</span>
               <span className="truncate text-white">{line.detail}</span>
@@ -129,8 +142,9 @@ export function LogsPage() {
 }
 
 export function UsagePage() {
-  const { machines, jobs, wallet } = useConsole();
+  const { machines, jobs, wallet, now } = useConsole();
   const running = jobs.filter((job) => !job.done).length;
+  const hours = usedLabel(jobs, now);
   return (
     <PageFrame title="Usage">
       <SectionLabel>Last 30 days</SectionLabel>
@@ -144,36 +158,31 @@ export function UsagePage() {
             Wallet
           </Link>
         </div>
-        <Meter label="Active hours" value="18h 24m / 40h" ratio={18.4 / 40} />
+        <Meter label="Hours running" value={hours.label} ratio={hours.ratio} />
         <Meter label="Machines online" value={String(machines.length)} ratio={machines.length ? 1 : 0} />
         <Meter label="Jobs running" value={jobs.length ? `${running} / ${jobs.length}` : "0"} ratio={jobs.length ? running / jobs.length : 0} />
         <Meter label="Jobs finished" value={String(jobs.filter((job) => job.done).length)} ratio={jobs.length ? jobs.filter((job) => job.done).length / jobs.length : 0} />
-        <Meter label="Wallet" value={wallet?.balance || "$128.40"} ratio={0.64} />
+        <Meter label="USDG" value={wallet?.balance || "$0"} ratio={wallet && wallet.balance !== "$0" ? 1 : 0} />
         <div className="h-2" />
       </Panel>
       <Panel className="px-4 py-4 text-[13px] leading-6 text-white">
-        Hours are billed when a deployment stops. The price is the one on the machine listing. Unused time stays in the wallet.
+        Hours are billed when a deployment stops. The price is the one on the machine. USDG is read from the wallet you connected.
       </Panel>
     </PageFrame>
   );
 }
 
 export function WalletPage() {
-  const { wallet, ensureWallet, busy, refresh } = useConsole();
-  const [working, setWorking] = useState(false);
+  const { wallet, connect, connecting, refresh } = useConsole();
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState("");
 
-  async function create() {
-    setWorking(true);
+  async function connectWallet() {
     setError("");
     try {
-      await ensureWallet();
-      await refresh();
+      await connect();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "could not create a wallet");
-    } finally {
-      setWorking(false);
+      setError(err instanceof Error ? err.message : "Could not connect the wallet");
     }
   }
 
@@ -191,21 +200,21 @@ export function WalletPage() {
         wallet ? (
           <GhostButton onClick={() => void refresh()}>Refresh</GhostButton>
         ) : (
-          <PrimaryButton disabled={working || Boolean(busy)} onClick={() => void create()}>
-            {working ? "Creating" : "Create wallet"}
+          <PrimaryButton disabled={connecting} onClick={() => void connectWallet()}>
+            {connecting ? "Connecting" : "Connect wallet"}
           </PrimaryButton>
         )
       }
     >
       <div className="grid gap-4 lg:grid-cols-2">
         <Panel className="p-5">
-          <p className="text-[13px] text-white">Balance</p>
+          <p className="text-[13px] text-white">USDG</p>
           <p className="mt-2 text-[32px] font-medium tracking-[-0.04em] tabular-nums">{wallet?.balance || "$0"}</p>
-          <p className="mt-2 text-[13px] text-white">Held {wallet?.held || "$0"}</p>
+          <p className="mt-2 text-[13px] text-white">Robinhood Chain</p>
         </Panel>
         <Panel className="p-5">
-          <p className="text-[13px] text-white">USDG address</p>
-          <p className="mt-3 break-all font-mono text-[13px] leading-6">{wallet?.address || "No wallet yet"}</p>
+          <p className="text-[13px] text-white">Connected wallet</p>
+          <p className="mt-3 break-all font-mono text-[13px] leading-6">{wallet?.address || "Not connected"}</p>
           {wallet ? (
             <GhostButton className="mt-4" onClick={() => void copy()}>
               {copied ? "Copied" : "Copy address"}
@@ -215,7 +224,7 @@ export function WalletPage() {
       </div>
       {error ? <p className="text-[13px] text-white">{error}</p> : null}
       <Panel className="px-5 py-4 text-[13px] leading-6 text-white">
-        This wallet pays the host in USDG when a deployment stops. Fund it on Robinhood Chain. What you do not use stays here.
+        This is the USDG balance in the wallet you connected. Cynera reads it from Robinhood Chain.
       </Panel>
     </PageFrame>
   );

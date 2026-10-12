@@ -4,12 +4,12 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useConsole } from "./console";
 import { ExternalIcon, ListIcon, Mark, PlusIcon } from "./icons";
-import { hostName } from "./catalog";
+import { hostName, usedLabel } from "./catalog";
 import { GhostButton, Meter, Panel, SectionLabel, TopBar, cn } from "./ui";
 import type { Machine } from "@/lib/cynera";
 
 export function Overview() {
-  const { machines, jobs, wallet, deploy, busy } = useConsole();
+  const { machines, jobs, wallet, deploy, busy, now } = useConsole();
   const [query, setQuery] = useState("");
   const [layout, setLayout] = useState<"grid" | "list">("grid");
   const running = jobs.filter((job) => !job.done).length;
@@ -35,6 +35,8 @@ export function Overview() {
 
   const machineRatio = machines.length === 0 ? 0 : 1;
   const jobRatio = jobs.length === 0 ? 0 : running / jobs.length;
+  const hours = usedLabel(jobs, now);
+  const taken = new Set(jobs.filter((job) => !job.done && job.machineId).map((job) => job.machineId as string));
 
   return (
     <div className="flex min-h-0 flex-1 flex-col xl:flex-row">
@@ -99,10 +101,10 @@ export function Overview() {
                 Wallet
               </Link>
             </div>
-            <Meter label="Active hours" value="18h 24m / 40h" ratio={18.4 / 40} />
+            <Meter label="Hours running" value={hours.label} ratio={hours.ratio} />
             <Meter label="Machines online" value={String(machines.length)} ratio={machineRatio} />
             <Meter label="Jobs running" value={jobs.length ? `${running} / ${jobs.length}` : "0"} ratio={jobRatio} />
-            <Meter label="Wallet" value={wallet?.balance || "$128.40"} ratio={0.64} />
+            <Meter label="USDG" value={wallet?.balance || "$0"} ratio={wallet && wallet.balance !== "$0" ? 1 : 0} />
             <div className="h-2" />
           </Panel>
 
@@ -128,6 +130,7 @@ export function Overview() {
               machines={filtered}
               layout={layout}
               busy={busy}
+              taken={taken}
               onDeploy={(machine) => void deploy(machine)}
             />
           </div>
@@ -156,6 +159,7 @@ export function Overview() {
             machines={filtered}
             layout={layout}
             busy={busy}
+            taken={taken}
             onDeploy={(machine) => void deploy(machine)}
           />
         </div>
@@ -168,11 +172,13 @@ function MachineList({
   machines,
   layout,
   busy,
+  taken,
   onDeploy,
 }: {
   machines: Machine[];
   layout: "grid" | "list";
   busy: string;
+  taken: Set<string>;
   onDeploy: (machine: Machine) => void;
 }) {
   if (machines.length === 0) {
@@ -214,9 +220,13 @@ function MachineList({
                 </td>
                 <td className="px-3 py-3 tabular-nums">${machine.pricePerHour}/hr</td>
                 <td className="px-3 py-3 text-right">
-                  <GhostButton disabled={busy === machine.id} onClick={() => onDeploy(machine)}>
-                    {busy === machine.id ? "Starting" : "Deploy"}
-                  </GhostButton>
+                  {taken.has(machine.id) ? (
+                    <span className="text-[12px]">In use</span>
+                  ) : (
+                    <GhostButton disabled={busy === machine.id} onClick={() => onDeploy(machine)}>
+                      {busy === machine.id ? "Starting" : "Deploy"}
+                    </GhostButton>
+                  )}
                 </td>
               </tr>
             ))}
@@ -234,11 +244,12 @@ function MachineList({
             <div className="flex min-w-0 items-center gap-2.5">
               <Mark className="h-8 w-8" />
               <p className="truncate text-[14px] font-medium">{machine.gpu || machine.id}</p>
+              {taken.has(machine.id) ? <span className="text-[12px]">In use</span> : null}
             </div>
             <button
               aria-label={`Deploy on ${machine.id}`}
               title="Deploy cynera/hello"
-              disabled={busy === machine.id}
+              disabled={busy === machine.id || taken.has(machine.id)}
               onClick={() => onDeploy(machine)}
               className="text-white hover:text-white disabled:opacity-40"
             >

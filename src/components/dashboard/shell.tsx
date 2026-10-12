@@ -39,7 +39,7 @@ export function Shell({ children }: { children: ReactNode }) {
 
 function ShellFrame({ children }: { children: ReactNode }) {
   const pathname = usePathname();
-  const { wallet, notice, clearNotice } = useConsole();
+  const { wallet, notice, clearNotice, connect, connecting } = useConsole();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const items = NAV.filter((item) => item.label.toLowerCase().includes(query.trim().toLowerCase()));
@@ -63,7 +63,7 @@ function ShellFrame({ children }: { children: ReactNode }) {
   }, [pathname]);
 
   return (
-    <div className="flex h-dvh overflow-hidden bg-black text-white">
+    <div className="dash flex h-dvh overflow-hidden bg-black text-white">
       {open ? (
         <button
           aria-label="Close menu"
@@ -121,7 +121,7 @@ function ShellFrame({ children }: { children: ReactNode }) {
         <div className="mt-auto flex h-12 items-center gap-2 border-t border-white px-3">
           <span className="flex h-6 w-6 items-center justify-center rounded-full bg-white text-[11px] font-medium text-black">C</span>
           <Link href="/dashboard/wallet" className="min-w-0 flex-1 truncate text-[13px] text-white hover:text-white">
-            {wallet ? shortAddress(wallet.address) : "Wallet"}
+            {wallet ? shortAddress(wallet.address) : "Connect"}
           </Link>
           <Link href="/dashboard/logs" aria-label="Logs" className="text-white hover:text-white">
             <BellIcon />
@@ -138,7 +138,11 @@ function ShellFrame({ children }: { children: ReactNode }) {
           </button>
           <span className="text-[14px] font-medium">Cynera</span>
         </div>
-        <div className="flex min-h-0 flex-1 flex-col">{children}</div>
+        {wallet ? (
+          <div className="flex min-h-0 flex-1 flex-col">{children}</div>
+        ) : (
+          <ConnectPanel connect={connect} connecting={connecting} />
+        )}
       </div>
       {notice ? (
         <button
@@ -148,6 +152,31 @@ function ShellFrame({ children }: { children: ReactNode }) {
           {notice}
         </button>
       ) : null}
+    </div>
+  );
+}
+
+function ConnectPanel({ connect, connecting }: { connect: () => Promise<void>; connecting: boolean }) {
+  const [error, setError] = useState("");
+  return (
+    <div className="flex min-h-0 flex-1 items-center justify-center px-6">
+      <div className="w-full max-w-md rounded-lg border border-white bg-black px-6 py-10 text-center">
+        <p className="text-[22px] font-medium tracking-[-0.04em]">Connect a wallet</p>
+        <p className="mt-3 text-[14px] leading-6">
+          Use the wallet that holds your USDG on Robinhood Chain. Cynera reads that balance.
+        </p>
+        <button
+          className="mt-6 inline-flex h-10 items-center rounded-md bg-white px-4 text-[14px] font-medium text-black disabled:cursor-not-allowed"
+          disabled={connecting}
+          onClick={() => {
+            setError("");
+            void connect().catch((err: unknown) => setError(err instanceof Error ? err.message : "Could not connect"));
+          }}
+        >
+          {connecting ? "Connecting" : "Connect wallet"}
+        </button>
+        {error ? <p className="mt-4 text-[13px]">{error}</p> : null}
+      </div>
     </div>
   );
 }

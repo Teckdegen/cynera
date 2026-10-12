@@ -1,7 +1,8 @@
 "use client";
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { floorJobIds, floorJobs, floorMachines, floorWallet } from "./catalog";
+import { billFor, floorMachines, hostName, marketJobs } from "./catalog";
+import { connectAccount, readUsdg, silentAccount, watchAccounts } from "@/lib/usdg";
 import {
   API,
   attachWallet,
@@ -32,7 +33,9 @@ type ConsoleValue = {
   notice: string;
   busy: string;
   refresh: () => Promise<void>;
-  ensureWallet: () => Promise<Wallet>;
+  connecting: boolean;
+  now: number;
+  connect: () => Promise<void>;
   deploy: (machine: Machine, image?: string, hours?: number) => Promise<void>;
   stop: (id: string) => Promise<void>;
   listMachine: (machine: Machine) => void;
@@ -55,14 +58,19 @@ export function ConsoleProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [config, setConfig] = useState<Config>({ mode: "demo" });
   const [machines, setMachines] = useState<Machine[]>(floorMachines);
-  const [jobs, setJobs] = useState<Job[]>(floorJobs);
-  const [wallet, setWallet] = useState<Wallet | null>(floorWallet);
+  const session = useRef<Job[]>([]);
+  const [jobs, setJobs] = useState<Job[]>([]);
+  const [now, setNow] = useState(0);
+  const [wallet, setWallet] = useState<Wallet | null>(null);
+  const [connecting, setConnecting] = useState(false);
+  const addressRef = useRef("");
   const liveIds = useRef(new Set<string>());
   const listed = useRef<Machine[]>([]);
   const [notice, setNotice] = useState("");
   const [busy, setBusy] = useState("");
 
   const refresh = useCallback(async () => {
+    setNow(Date.now());
     try {
       const [nextConfig, nextMachines] = await Promise.all([getConfig(), getMachines()]);
       setConfig(nextConfig);
@@ -70,37 +78,27 @@ export function ConsoleProvider({ children }: { children: ReactNode }) {
       const seen = new Set([...nextMachines, ...listed.current].map((machine) => machine.id));
       setMachines([...nextMachines, ...listed.current, ...floorMachines.filter((machine) => !seen.has(machine.id))]);
       setOffline(false);
-      const walletId = localStorage.getItem(WALLET_KEY);
-      if (walletId) {
+      if (addressRef.current) {
         try {
-          setWallet(await getWallet(walletId));
+          const balance = await readUsdg(addressRef.current);
+          setWallet((current) => (current ? { ...current, balance } : current));
         } catch {
-          localStorage.removeItem(WALLET_KEY);
-          setWallet(floorWallet);
+          /* keep the last balance */
         }
-      } else {
-        setWallet((current) => (current && current.id !== floorWallet.id ? current : floorWallet));
       }
       const ids = readJobs();
       const nextJobs: Job[] = [];
       for (const id of ids) {
+        if (session.current.some((job) => job.id === id)) continue;
         try {
           nextJobs.push(await getJob(id));
         } catch {
-          nextJobs.push({ id, done: true, status: "missing", error: "job not found" });
+          /* an old id from this browser is not on the API */
         }
       }
-      setJobs((current) => {
-        const pinned = current.filter((job) => job.local || floorJobIds.has(job.id));
-        const pinnedIds = new Set(pinned.map((job) => job.id));
-        const fresh = nextJobs.filter((job) => !pinnedIds.has(job.id));
-        const have = new Set([...pinned, ...fresh].map((job) => job.id));
-        return [...pinned, ...fresh, ...floorJobs.filter((job) => !have.has(job.id))];
-      });
+      setJobs([...session.current, ...nextJobs]);
     } catch {
       setMachines([...listed.current, ...floorMachines.filter((machine) => !listed.current.some((item) => item.id === machine.id))]);
-      setJobs((current) => (current.length ? current : floorJobs));
-      setWallet((current) => current ?? floorWallet);
       setOffline(false);
     } finally {
       setLoading(false);
@@ -108,6 +106,12 @@ export function ConsoleProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
+    if (session.current.length === 0) {
+      const clock = Date.now();
+      session.current = marketJobs(clock);
+      setJobs([...session.current]);
+      setNow(clock);
+    }
     const timer = window.setTimeout(() => {
       void refresh();
     }, 0);
@@ -120,16 +124,44 @@ export function ConsoleProvider({ children }: { children: ReactNode }) {
     };
   }, [refresh]);
 
+  const applyAccount = useCallback(async (address: string) => {
+    addressRef.current = address;
+    if (!address) {
+      setWallet(null);
+      return;
+    }
+    const balance = await readUsdg(address);
+    setWallet({ id: address, address, role: "renter", label: "Wallet", balance, held: "$0" });
+  }, []);
+
+  const connect = useCallback(async () => {
+    setConnecting(true);
+    setNotice("");
+    try {
+      await applyAccount(await connectAccount());
+    } catch (err) {
+      setNotice(err instanceof Error ? err.message : "Could not connect the wallet");
+      throw err;
+    } finally {
+      setConnecting(false);
+    }
+  }, [applyAccount]);
+
+  useEffect(() => {
+    const unwatch = watchAccounts((address) => {
+      void applyAccount(address).catch(() => setWallet(null));
+    });
+    void silentAccount()
+      .then((address) => (address ? applyAccount(address) : undefined))
+      .catch(() => undefined);
+    return unwatch;
+  }, [applyAccount]);
+
   const ensureWallet = useCallback(async () => {
     const existing = localStorage.getItem(WALLET_KEY);
-    if (existing) {
-      const current = await getWallet(existing);
-      setWallet(current);
-      return current;
-    }
+    if (existing) return getWallet(existing);
     const created = await createWallet("renter", "Dashboard");
     localStorage.setItem(WALLET_KEY, created.id);
-    setWallet(created);
     return created;
   }, []);
 
@@ -139,18 +171,35 @@ export function ConsoleProvider({ children }: { children: ReactNode }) {
       setNotice("");
       try {
         if (!liveIds.current.has(machine.id)) {
+          if (session.current.some((job) => job.machineId === machine.id && !job.done)) {
+            setNotice(`${machine.gpu || machine.id} is in use.`);
+            return;
+          }
+          const id = `job_${Math.random().toString(16).slice(2, 8)}`;
           const job: Job = {
-            id: `job_${Math.random().toString(16).slice(2, 8)}`,
+            id,
             done: false,
             status: "running",
             local: true,
-            image: image,
+            image,
+            machineId: machine.id,
             machineLabel: machine.gpu || machine.id,
-            url: `https://${machine.region.replace(/\s+/g, "")}.hosts.cynera.cloud/`,
-            detail: `container is up on ${machine.id}`,
+            pricePerHour: machine.pricePerHour,
+            startedAt: Date.now(),
+            url: `/run/${id}`,
+            detail: "listening on 0.0.0.0:8000",
+            lines: [`pull ${image}`, `gpu 0  ${machine.gpu || machine.id}`, "listening on 0.0.0.0:8000"],
           };
-          setJobs((current) => [job, ...current]);
-          setNotice(`${job.id} is running on ${machine.gpu || machine.id}.`);
+          try {
+            const saved = JSON.parse(localStorage.getItem("cynera.runs") || "{}") as Record<string, { image: string; gpu: string; host: string }>;
+            saved[id] = { image, gpu: machine.gpu || machine.id, host: hostName(machine.region) };
+            localStorage.setItem("cynera.runs", JSON.stringify(saved));
+          } catch {
+            /* the run page still opens without this */
+          }
+          session.current = [job, ...session.current];
+          setJobs(session.current);
+          setNotice(`${machine.gpu || machine.id} is up.`);
           return;
         }
         const renter = await ensureWallet();
@@ -186,14 +235,26 @@ export function ConsoleProvider({ children }: { children: ReactNode }) {
       setBusy(id);
       setNotice("");
       try {
-        const hit = jobs.find((job) => job.id === id);
-        if (hit && (hit.local || floorJobIds.has(hit.id))) {
-          setJobs((current) =>
-            current.map((job) =>
-              job.id === id ? { ...job, done: true, status: "done", billed: job.billed || "$0.42", detail: "paid the host" } : job,
-            ),
+        const hit = session.current.find((job) => job.id === id);
+        if (hit?.local) {
+          const ranMs = hit.startedAt ? Date.now() - hit.startedAt : hit.ranMs || 1000;
+          const billed = hit.pricePerHour ? billFor(hit.pricePerHour, ranMs) : hit.billed;
+          session.current = session.current.map((job) =>
+            job.id === id
+              ? {
+                  ...job,
+                  done: true,
+                  status: "settled",
+                  ranMs,
+                  billed,
+                  url: undefined,
+                  detail: billed ? `settled ${billed}` : "settled",
+                  lines: [...(job.lines || []), billed ? `settled ${billed}` : "settled"],
+                }
+              : job,
           );
-          setNotice(`${id} stopped. The host was paid for the time it ran.`);
+          setJobs(session.current);
+          setNotice(billed ? `${hit.machineLabel || id} stopped. ${billed} for the time it ran.` : `${id} stopped.`);
           return;
         }
         await stopJob(id);
@@ -205,7 +266,7 @@ export function ConsoleProvider({ children }: { children: ReactNode }) {
         setBusy("");
       }
     },
-    [jobs, refresh],
+    [refresh],
   );
 
   const listMachine = useCallback((machine: Machine) => {
@@ -225,14 +286,16 @@ export function ConsoleProvider({ children }: { children: ReactNode }) {
       wallet,
       notice,
       busy,
+      connecting,
+      now,
       refresh,
-      ensureWallet,
+      connect,
       deploy,
       stop,
       listMachine,
       clearNotice: () => setNotice(""),
     }),
-    [offline, loading, config, machines, jobs, wallet, notice, busy, refresh, ensureWallet, deploy, stop, listMachine],
+    [offline, loading, config, machines, jobs, wallet, notice, busy, connecting, now, refresh, connect, deploy, stop, listMachine],
   );
 
   return <ConsoleContext.Provider value={value}>{children}</ConsoleContext.Provider>;
