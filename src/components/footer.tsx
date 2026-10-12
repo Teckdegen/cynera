@@ -4,7 +4,7 @@ export function Footer() {
       <div className="rounded-[22px] border border-white/10 bg-ash-dark px-6 py-8 sm:px-10">
         <div className="flex items-center justify-between gap-6">
           <a href="#top" className="flex shrink-0 items-center gap-2.5">
-            <LogoMark />
+            <img src="/logo.png" alt="" className="h-12 w-12" />
             <span className="text-[17px] font-medium tracking-[-0.03em]">Cynera</span>
           </a>
           <div className="flex items-center gap-5 text-ash">
@@ -36,12 +36,3 @@ export function Footer() {
   );
 }
 
-function LogoMark() {
-  return (
-    <svg viewBox="0 0 32 32" className="h-7 w-7" aria-hidden="true">
-      <circle cx="16" cy="16" r="15" fill="white" />
-      <circle cx="16" cy="16" r="6.5" fill="#000" />
-      <circle cx="16" cy="16" r="2.3" fill="white" />
-    </svg>
-  );
-}

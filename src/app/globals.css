@@ -11,6 +11,7 @@
   --color-ash: #9a9a9a;
   --color-ash-dark: #141414;
   --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
 }
 
 body {
@@ -239,19 +240,43 @@ body {
   animation: sketch-line 3.4s ease-in-out infinite;
 }
 
-.arch-cycle > span {
+.arch-link {
+  position: relative;
+  height: 28px;
+  width: 1px;
+  flex: none;
+  background: rgba(255, 255, 255, 0.28);
+}
+
+.arch-link > span {
   position: absolute;
-  left: 0;
-  opacity: 0;
-  animation: arch-cycle 7.5s steps(1, end) infinite;
+  left: 50%;
+  top: 0;
+  width: 7px;
+  height: 7px;
+  margin-left: -3px;
+  border-radius: 999px;
+  background: #fff;
+  box-shadow: 0 0 12px rgba(255, 255, 255, 0.85);
+  animation: arch-link-y 1.6s linear infinite;
 }
 
-.arch-cycle > span:nth-child(2) {
-  animation-delay: -2.5s;
-}
+@media (min-width: 640px) {
+  .arch-link {
+    height: 1px;
+    width: auto;
+    flex: 1 1 20px;
+    max-width: 64px;
+    align-self: center;
+  }
 
-.arch-cycle > span:nth-child(3) {
-  animation-delay: -5s;
+  .arch-link > span {
+    top: 50%;
+    left: 0;
+    margin-top: -3px;
+    margin-left: 0;
+    animation-name: arch-link-x;
+  }
 }
 
 .sketch-ring {
@@ -325,14 +350,21 @@ body {
   }
 }
 
-@keyframes arch-cycle {
-  0%,
-  32% {
-    opacity: 1;
+@keyframes arch-link-x {
+  from {
+    transform: translateX(0);
   }
-  33%,
-  100% {
-    opacity: 0;
+  to {
+    transform: translateX(40px);
+  }
+}
+
+@keyframes arch-link-y {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(28px);
   }
 }
 
@@ -368,12 +400,8 @@ body {
   .sketch-log,
   .sketch-line,
   .sketch-ring,
-  .arch-cycle > span {
+  .arch-link > span {
     animation: none;
-  }
-
-  .arch-cycle > span:first-child {
-    opacity: 1;
   }
 
   .machine-rate:nth-child(2),
